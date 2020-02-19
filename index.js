@@ -1,10 +1,12 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
+const cors = require('cors');
 
 const app = express();
 
 app.use(bodyParser.json());
+app.use(cors());
 
 const db = {
   users: [
@@ -28,7 +30,7 @@ const db = {
 }
 
 app.get('/', (req, res) => {
-  res.send('this is working');
+  res.send(db.users);
 });
 
 app.post('/signin', (req, res) =>  {
@@ -84,6 +86,6 @@ app.put('/image', (req, res) => {
   }
 });
 
-app.listen(3000, () => {
-  console.log('The app is running on port 3000')
+app.listen(3001, () => {
+  console.log('The app is running on port 3001')
 });
