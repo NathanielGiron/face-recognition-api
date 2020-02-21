@@ -14,6 +14,10 @@ const pg = knex({
   }
 });
 
+pg.select().from('users').then(data => {
+  console.log(data);
+});
+
 const app = express();
 
 app.use(bodyParser.json());
@@ -57,15 +61,17 @@ app.post('/register', (req, res) => {
   bcrypt.hash(password, 10, function(err, hash) {
     console.log(hash)
   });
-  db.users.push({
-    id: '3',
-    name: name,
-    email: email,
-    password: password,
-    entries: 0,
-    joined: new Date()
-  });
-  res.json(db.users[db.users.length-1]);
+  pg('users')
+    .returning('*')
+    .insert({
+      name: name,
+      email: email,
+      joined: new Date()
+    })
+    .then(user => {
+      res.json(user[0]);
+    })
+    .catch(err => res.status(400).json('unable to register'))
 });
 
 app.get('/profile/:id', (req, res) => {
