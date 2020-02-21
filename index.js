@@ -91,17 +91,15 @@ app.get('/profile/:id', (req, res) => {
 
 app.put('/image', (req, res) => {
   const { id } = req.body;
-  let found = false;
-  db.users.forEach(user => {
-    if(user.id === id) {
-      found = true;
-      user.entries++;
-      return res.json(user);
-    }
-  });
-  if(!found) {
-    res.status(404).json('not found');
-  }
+  pg('users').where({id})
+    .increment('entries', 1)
+    .returning('entries')
+    .then(entries => {
+      res.json(entries[0]);
+    })
+    .catch(err => {
+      res.status(400).json('error updating entry')
+    })
 });
 
 app.listen(3001, () => {
