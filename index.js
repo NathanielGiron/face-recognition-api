@@ -2,6 +2,17 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
 const cors = require('cors');
+const knex = require('knex');
+
+const pg = knex({
+  client: 'pg',
+  connection: {
+    host : '127.0.0.1',
+    user : 'nathanielgiron',
+    password : '',
+    database : 'face_recognition'
+  }
+});
 
 const app = express();
 
