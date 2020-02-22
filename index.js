@@ -4,7 +4,7 @@ const bcrypt = require('bcrypt');
 const cors = require('cors');
 const knex = require('knex');
 
-const pg = knex({
+const db = knex({
   client: 'pg',
   connection: {
     host : '127.0.0.1',
@@ -14,7 +14,7 @@ const pg = knex({
   }
 });
 
-pg.select().from('users').then(data => {
+db.select().from('users').then(data => {
   console.log(data);
 });
 
@@ -22,27 +22,6 @@ const app = express();
 
 app.use(bodyParser.json());
 app.use(cors());
-
-const db = {
-  users: [
-    {
-      id: '1',
-      name: 'John',
-      email: 'john@gmail.com',
-      password: 'cookies',
-      entries: 0,
-      joined: new Date()
-    },
-    {
-      id: '2',
-      name: 'Mark',
-      email: 'mark@gmail.com',
-      password: 'apples',
-      entries: 0,
-      joined: new Date()
-    }
-  ]
-}
 
 app.get('/', (req, res) => {
   res.send(db.users);
@@ -58,25 +37,35 @@ app.post('/signin', (req, res) =>  {
 
 app.post('/register', (req, res) => {
   const {name, email, password} = req.body;
-  bcrypt.hash(password, 10, function(err, hash) {
-    console.log(hash)
-  });
-  pg('users')
-    .returning('*')
-    .insert({
-      name: name,
-      email: email,
-      joined: new Date()
+  const hash = bcrypt.hashSync(password, 10);
+  db.transaction(trx => {
+    trx.insert({
+      hash: hash,
+      email: email
     })
-    .then(user => {
-      res.json(user[0]);
+    .into('login')
+    .returning('email')
+    .then(loginEmail => {
+      return trx('users')
+        .returning('*')
+        .insert({
+          name: name,
+          email: loginEmail[0],
+          joined: new Date()
+        })
+        .then(user => {
+          res.json(user[0]);
+        })
     })
-    .catch(err => res.status(400).json('unable to register'))
+    .then(trx.commit)
+    .catch(trx.rollback)
+  })
+  .catch(err => res.status(400).json('unable to register'))
 });
 
 app.get('/profile/:id', (req, res) => {
   const { id } = req.params;
-  pg('users').select('*').from('users').where({id})
+  db('users').select('*').from('users').where({id})
     .then(user => {
       if (user.length) {
         res.json(user[0])
@@ -91,7 +80,7 @@ app.get('/profile/:id', (req, res) => {
 
 app.put('/image', (req, res) => {
   const { id } = req.body;
-  pg('users').where({id})
+  db('users').where({id})
     .increment('entries', 1)
     .returning('entries')
     .then(entries => {
